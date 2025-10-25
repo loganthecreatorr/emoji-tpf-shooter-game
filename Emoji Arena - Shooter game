@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Arena - Multiplayer Shooter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        canvas { display: block; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div id="menu" class="w-full h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+        <div class="bg-slate-800/90 backdrop-blur rounded-2xl p-8 max-w-md w-full shadow-2xl border border-purple-500/30">
+            <h1 class="text-5xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Emoji Arena
+            </h1>
+            <p class="text-center text-slate-300 mb-8">Third-Person Multiplayer Shooter</p>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Your Name</label>
+                    <input id="playerName" type="text" value="Player" maxlength="15"
+                        class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Choose Your Emoji</label>
+                    <div id="emojiGrid" class="grid grid-cols-10 gap-2"></div>
+                </div>
+            </div>
+            
+            <div class="space-y-3">
+                <button id="createBtn"
+                    class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition flex items-center justify-center gap-2">
+                    Create Game Session
+                </button>
+                
+                <div class="flex gap-2">
+                    <input id="sessionInput" type="text" placeholder="Enter Session ID"
+                        class="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                    <button id="joinBtn"
+                        class="bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">
+                        Join
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lobby" class="hidden w-full h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+        <div class="bg-slate-800/90 backdrop-blur rounded-2xl p-8 max-w-4xl w-full shadow-2xl border border-purple-500/30 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        Game Lobby
+                    </h1>
+                    <p class="text-slate-300 mt-1">Session ID: <span id="sessionDisplay" class="font-mono text-purple-400"></span></p>
+                </div>
+                <button id="settingsBtn"
+                    class="bg-slate-700 p-3 rounded-lg hover:bg-slate-600 transition">
+                    ⚙️
+                </button>
+            </div>
+            
+            <div id="settingsPanel" class="hidden bg-slate-700/50 rounded-lg p-6 mb-6 space-y-4">
+                <h3 class="text-xl font-semibold text-white mb-4">Game Settings</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Sensitivity: <span id="sensVal">5</span></label>
+                        <input id="sensitivity" type="range" min="1" max="10" step="0.5" value="5" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Damage Multiplier: <span id="dmgVal">1</span>x</label>
+                        <input id="damageMultiplier" type="range" min="0.5" max="3" step="0.1" value="1" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Jump Power: <span id="jumpVal">15</span></label>
+                        <input id="jumpPower" type="range" min="5" max="30" step="1" value="15" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Movement Speed: <span id="speedVal">5</span></label>
+                        <input id="moveSpeed" type="range" min="1" max="10" step="0.5" value="5" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Regen Speed: <span id="regenVal">1</span></label>
+                        <input id="regenSpeed" type="range" min="0" max="5" step="0.5" value="1" class="w-full">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <button id="weaponBtn"
+                    class="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-orange-700 hover:to-red-700 transition mb-4">
+                    Choose Weapon: <span id="weaponName">Gun 1</span>
+                </button>
+                
+                <div id="weaponPanel" class="hidden bg-slate-700/50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    <div id="weaponList"></div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-700/30 rounded-lg p-4 mb-6">
+                <h3 class="text-lg font-semibold text-white mb-3">Players in Lobby</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3 bg-slate-600/50 p-3 rounded-lg">
+                        <span id="lobbyEmoji" class="text-3xl">😎</span>
+                        <div>
+                            <p class="text-white font-medium"><span id="lobbyName">Player</span> (You)</p>
+                            <p class="text-slate-400 text-sm">Ready</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-6">
+                <h3 class="text-blue-300 font-semibold mb-2">How to Play</h3>
+                <ul class="text-slate-300 text-sm space-y-1">
+                    <li>• <span class="font-semibold">WASD</span> - Move</li>
+                    <li>• <span class="font-semibold">SPACE</span> - Jump</li>
+                    <li>• <span class="font-semibold">Mouse</span> - Look around</li>
+                    <li>• <span class="font-semibold">Left Click</span> - Shoot (hold for auto-fire)</li>
+                    <li>• <span class="font-semibold">Right Click</span> - Throw grenade/bomb or place mine</li>
+                    <li>• Click to lock mouse pointer for aiming</li>
+                </ul>
+            </div>
+            
+            <button id="startBtn"
+                class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition">
+                Start Game
+            </button>
+        </div>
+    </div>
+
+    <div id="game" class="hidden relative w-full h-screen overflow-hidden">
+        <canvas id="gameCanvas" class="w-full h-full cursor-none"></canvas>
+        
+        <div class="absolute top-4 right-4 bg-slate-900/80 backdrop-blur rounded-lg p-4 text-white">
+            <p class="text-sm mb-2">Session: <span id="gameSession" class="font-mono text-purple-400"></span></p>
+            <p class="text-xs text-slate-400">Share this code with friends!</p>
+        </div>
+        
+        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-900/80 backdrop-blur rounded-lg px-6 py-2">
+            <p class="text-white font-semibold text-center"><span id="gameName"></span> (<span id="gameEmoji"></span>)</p>
+        </div>
+        
+        <button id="exitBtn"
+            class="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+            Exit Game
+        </button>
+    </div>
+
+    <script>
+        const emojis = ['😎', '🤖', '👽', '🦖', '🐉', '🦁', '🐯', '🦊', '🐺', '🐼', '🦄', '🐸', '🦑', '🎃', '👻', '💀', '🤡', '👹', '👺', '🦹'];
+        
+        let gameState = 'menu';
+        let sessionId = '';
+        let playerId = Math.random().toString(36).substr(2, 9);
+        let playerEmoji = '😎';
+        let playerName = 'Player';
+        let selectedWeapon = null;
+        
+        const settings = {
+            sensitivity: 5,
+            damageMultiplier: 1,
+            jumpPower: 15,
+            speed: 5,
+            regenSpeed: 1,
+            moveSpeed: 5
+        };
+        
+        const weapons = [
+            ...Array.from({length: 50}, (_, i) => ({
+                id: `gun${i}`,
+                name: `Gun ${i + 1}`,
+                type: 'gun',
+                damage: 10 + i * 2,
+                fireRate: 100 + i * 10,
+                range: 300 + i * 5,
+                color: `hsl(${i * 7}, 70%, 50%)`
+            })),
+            ...Array.from({length: 30}, (_, i) => ({
+                id: `grenade${i}`,
+                name: `Grenade ${i + 1}`,
+                type: 'grenade',
+                damage: 50 + i * 5,
+                radius: 50 + i * 3,
+                timer: 2000 - i * 20,
+                color: `hsl(${120 + i * 5}, 70%, 50%)`
+            })),
+            ...Array.from({length: 15}, (_, i) => ({
+                id: `mine${i}`,
+                name: `Mine ${i + 1}`,
+                type: 'mine',
+                damage: 75 + i * 5,
+                radius: 60 + i * 2,
+                color: `hsl(${240 + i * 10}, 70%, 50%)`
+            })),
+            ...Array.from({length: 15}, (_, i) => ({
+                id: `bomb${i}`,
+                name: `Bomb ${i + 1}`,
+                type: 'bomb',
+                damage: 100 + i * 10,
+                radius: 80 + i * 5,
+                timer: 3000 - i * 50,
+                color: `hsl(${30 + i * 15}, 70%, 50%)`
+            }))
+        ];
+        
+        selectedWeapon = weapons[0];
+        
+        const game = {
+            players: {},
+            projectiles: [],
+            explosives: [],
+            particles: [],
+            bloodSplatters: [],
+            gibs: [],
+            camera: { x: 0, y: 0, z: 300 },
+            keys: {},
+            mouse: { x: 0, y: 0, down: false },
+            lastShot: 0
+        };
+        
+        // Initialize emoji grid
+        const emojiGrid = document.getElementById('emojiGrid');
+        emojis.forEach(emoji => {
+            const btn = document.createElement('button');
+            btn.textContent = emoji;
+            btn.className = 'text-2xl p-2 rounded-lg transition bg-slate-700 hover:bg-slate-600';
+            btn.onclick = () => {
+                playerEmoji = emoji;
+                document.querySelectorAll('#emojiGrid button').forEach(b => {
+                    b.className = 'text-2xl p-2 rounded-lg transition bg-slate-700 hover:bg-slate-600';
+                });
+                btn.className = 'text-2xl p-2 rounded-lg transition bg-purple-600 scale-110';
+            };
+            if (emoji === playerEmoji) {
+                btn.className = 'text-2xl p-2 rounded-lg transition bg-purple-600 scale-110';
+            }
+            emojiGrid.appendChild(btn);
+        });
+        
+        // Initialize weapon list
+        const weaponList = document.getElementById('weaponList');
+        ['gun', 'grenade', 'mine', 'bomb'].forEach(type => {
+            const section = document.createElement('div');
+            const title = document.createElement('h4');
+            title.className = 'text-lg font-semibold text-white mb-2 capitalize';
+            title.textContent = type + 's';
+            section.appendChild(title);
+            
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-5 gap-2 mb-4';
+            
+            weapons.filter(w => w.type === type).slice(0, 20).forEach(weapon => {
+                const btn = document.createElement('button');
+                btn.textContent = weapon.name;
+                btn.className = 'p-2 rounded text-xs transition hover:scale-105';
+                btn.style.backgroundColor = weapon.color;
+                btn.onclick = () => {
+                    selectedWeapon = weapon;
+                    document.getElementById('weaponName').textContent = weapon.name;
+                    document.getElementById('weaponPanel').classList.add('hidden');
+                    if (game.players[playerId]) {
+                        game.players[playerId].weapon = weapon;
+                    }
+                };
+                grid.appendChild(btn);
+            });
+            
+            section.appendChild(grid);
+            weaponList.appendChild(section);
+        });
+        
+        // Settings listeners
+        document.getElementById('sensitivity').oninput = (e) => {
+            settings.sensitivity = parseFloat(e.target.value);
+            document.getElementById('sensVal').textContent = e.target.value;
+        };
+        document.getElementById('damageMultiplier').oninput = (e) => {
+            settings.damageMultiplier = parseFloat(e.target.value);
+            document.getElementById('dmgVal').textContent = e.target.value;
+        };
+        document.getElementById('jumpPower').oninput = (e) => {
+            settings.jumpPower = parseFloat(e.target.value);
+            document.getElementById('jumpVal').textContent = e.target.value;
+        };
+        document.getElementById('moveSpeed').oninput = (e) => {
+            settings.moveSpeed = parseFloat(e.target.value);
+            document.getElementById('speedVal').textContent = e.target.value;
+        };
+        document.getElementById('regenSpeed').oninput = (e) => {
+            settings.regenSpeed = parseFloat(e.target.value);
+            document.getElementById('regenVal').textContent = e.target.value;
+        };
+        
+        // Button listeners
+        document.getElementById('createBtn').onclick = () => {
+            sessionId = Math.random().toString(36).substr(2, 9).toUpperCase();
+            playerName = document.getElementById('playerName').value;
+            showScreen('lobby');
+        };
+        
+        document.getElementById('joinBtn').onclick = () => {
+            sessionId = document.getElementById('sessionInput').value.toUpperCase();
+            playerName = document.getElementById('playerName').value;
+            if (sessionId) showScreen('lobby');
+        };
+        
+        document.getElementById('settingsBtn').onclick = () => {
+            document.getElementById('settingsPanel').classList.toggle('hidden');
+        };
+        
+        document.getElementById('weaponBtn').onclick = () => {
+            document.getElementById('weaponPanel').classList.toggle('hidden');
+        };
+        
+        document.getElementById('startBtn').onclick = () => {
+            showScreen('game');
+            startGame();
+        };
+        
+        document.getElementById('exitBtn').onclick = () => {
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+            showScreen('lobby');
+        };
+        
+        function showScreen(screen) {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('game').classList.add('hidden');
+            
+            if (screen === 'lobby') {
+                document.getElementById('lobby').classList.remove('hidden');
+                document.getElementById('sessionDisplay').textContent = sessionId;
+                document.getElementById('lobbyEmoji').textContent = playerEmoji;
+                document.getElementById('lobbyName').textContent = playerName;
+            } else if (screen === 'game') {
+                document.getElementById('game').classList.remove('hidden');
+                document.getElementById('gameSession').textContent = sessionId;
+                document.getElementById('gameName').textContent = playerName;
+                document.getElementById('gameEmoji').textContent = playerEmoji;
+            } else {
+                document.getElementById('menu').classList.remove('hidden');
+            }
+        }
+        
+        function startGame() {
+            game.players[playerId] = {
+                id: playerId,
+                emoji: playerEmoji,
+                name: playerName,
+                x: Math.random() * 800 - 400,
+                y: 0,
+                z: Math.random() * 800 - 400,
+                vx: 0,
+                vy: 0,
+                vz: 0,
+                rotY: 0,
+                rotX: 0,
+                health: 100,
+                maxHealth: 100,
+                weapon: selectedWeapon,
+                settings: {...settings}
+            };
+            
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const handleKeyDown = (e) => {
+                game.keys[e.key.toLowerCase()] = true;
+                if (e.key === ' ') e.preventDefault();
+            };
+            
+            const handleKeyUp = (e) => {
+                game.keys[e.key.toLowerCase()] = false;
+            };
+            
+            const handleMouseMove = (e) => {
+                const dx = e.movementX * settings.sensitivity * 0.1;
+                const dy = e.movementY * settings.sensitivity * 0.1;
+                
+                const player = game.players[playerId];
+                if (player) {
+                    player.rotY -= dx * 0.01;
+                    player.rotX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, player.rotX - dy * 0.01));
+                }
+            };
+            
+            const handleMouseDown = (e) => {
+                game.mouse.down = true;
+                if (e.button === 2) {
+                    throwExplosive();
+                }
+                e.preventDefault();
+            };
+            
+            const handleMouseUp = () => {
+                game.mouse.down = false;
+            };
+            
+            const handleClick = () => {
+                canvas.requestPointerLock();
+            };
+            
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('click', handleClick);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            function throwExplosive() {
+                const player = game.players[playerId];
+                if (!player) return;
+                
+                const weapon = player.weapon;
+                if (weapon.type === 'grenade' || weapon.type === 'bomb') {
+                    const speed = 15;
+                    game.explosives.push({
+                        x: player.x,
+                        y: player.y + 10,
+                        z: player.z,
+                        vx: Math.sin(player.rotY) * Math.cos(player.rotX) * speed,
+                        vy: Math.sin(player.rotX) * speed + 5,
+                        vz: Math.cos(player.rotY) * Math.cos(player.rotX) * speed,
+                        timer: Date.now() + weapon.timer,
+                        weapon: weapon,
+                        owner: playerId
+                    });
+                } else if (weapon.type === 'mine') {
+                    game.explosives.push({
+                        x: player.x,
+                        y: 0,
+                        z: player.z,
+                        vx: 0,
+                        vy: 0,
+                        vz: 0,
+                        timer: null,
+                        weapon: weapon,
+                        owner: playerId,
+                        isMine: true
+                    });
+                }
+            }
+            
+            function shoot() {
+                const now = Date.now();
+                const player = game.players[playerId];
+                if (!player || !player.weapon) return;
+                
+                const weapon = player.weapon;
+                if (weapon.type !== 'gun') return;
+                
+                if (now - game.lastShot < weapon.fireRate) return;
+                game.lastShot = now;
+                
+                const speed = 20;
+                game.projectiles.push({
+                    x: player.x,
+                    y: player.y + 10,
+                    z: player.z,
+                    vx: Math.sin(player.rotY) * Math.cos(player.rotX) * speed,
+                    vy: Math.sin(player.rotX) * speed,
+                    vz: Math.cos(player.rotY) * Math.cos(player.rotX) * speed,
+                    damage: weapon.damage * settings.damageMultiplier,
+                    range: weapon.range,
+                    traveled: 0,
+                    owner: playerId,
+                    color: weapon.color
+                });
+            }
+            
+            function update() {
+                const player = game.players[playerId];
+                if (!player) return;
+                
+                const speed = settings.moveSpeed * 0.5;
+                let dx = 0, dz = 0;
+                
+                if (game.keys['w']) dz += 1;
+                if (game.keys['s']) dz -= 1;
+                if (game.keys['a']) dx -= 1;
+                if (game.keys['d']) dx += 1;
+                
+                if (dx !== 0 || dz !== 0) {
+                    const angle = player.rotY;
+                    const moveX = (dx * Math.cos(angle) + dz * Math.sin(angle)) * speed;
+                    const moveZ = (dz * Math.cos(angle) - dx * Math.sin(angle)) * speed;
+                    player.x += moveX;
+                    player.z += moveZ;
+                }
+                
+                if (game.keys[' '] && player.y === 0) {
+                    player.vy = settings.jumpPower;
+                }
+                
+                player.vy -= 0.8;
+                player.y += player.vy;
+                if (player.y < 0) {
+                    player.y = 0;
+                    player.vy = 0;
+                }
+                
+                if (game.mouse.down) {
+                    shoot();
+                }
+                
+                if (player.health < player.maxHealth) {
+                    player.health = Math.min(player.maxHealth, player.health + settings.regenSpeed * 0.05);
+                }
+                
+                game.projectiles = game.projectiles.filter(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.z += p.vz;
+                    p.traveled += Math.sqrt(p.vx**2 + p.vy**2 + p.vz**2);
+                    
+                    for (let id in game.players) {
+                        if (id === p.owner) continue;
+                        const target = game.players[id];
+                        const dist = Math.sqrt((p.x - target.x)**2 + (p.y - target.y - 10)**2 + (p.z - target.z)**2);
+                        if (dist < 15) {
+                            target.health -= p.damage;
+                            
+                            game.bloodSplatters.push({
+                                x: target.x,
+                                y: 0.1,
+                                z: target.z,
+                                size: 20 + Math.random() * 20,
+                                alpha: 0.8,
+                                rotation: Math.random() * Math.PI * 2
+                            });
+                            
+                            for (let i = 0; i < 15; i++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const speed = Math.random() * 8 + 2;
+                                game.particles.push({
+                                    x: target.x,
+                                    y: target.y + 10,
+                                    z: target.z,
+                                    vx: Math.cos(angle) * speed,
+                                    vy: Math.random() * 5 + 3,
+                                    vz: Math.sin(angle) * speed,
+                                    life: 40,
+                                    color: `hsl(${Math.random() * 20}, 100%, ${30 + Math.random() * 20}%)`,
+                                    size: 2 + Math.random() * 3
+                                });
+                            }
+                            
+                            if (target.health <= 0) {
+                                for (let i = 0; i < 8; i++) {
+                                    const angle = Math.random() * Math.PI * 2;
+                                    const speed = Math.random() * 10 + 5;
+                                    game.gibs.push({
+                                        x: target.x,
+                                        y: target.y + 10,
+                                        z: target.z,
+                                        vx: Math.cos(angle) * speed,
+                                        vy: Math.random() * 15 + 5,
+                                        vz: Math.sin(angle) * speed,
+                                        rotX: Math.random() * Math.PI * 2,
+                                        rotY: Math.random() * Math.PI * 2,
+                                        rotVel: (Math.random() - 0.5) * 0.3,
+                                        life: 120,
+                                        type: Math.floor(Math.random() * 3),
+                                        emoji: target.emoji
+                                    });
+                                }
+                                
+                                for (let i = 0; i < 3; i++) {
+                                    game.bloodSplatters.push({
+                                        x: target.x + (Math.random() - 0.5) * 30,
+                                        y: 0.1,
+                                        z: target.z + (Math.random() - 0.5) * 30,
+                                        size: 40 + Math.random() * 30,
+                                        alpha: 0.7,
+                                        rotation: Math.random() * Math.PI * 2
+                                    });
+                                }
+                                
+                                target.health = target.maxHealth;
+                                target.x = Math.random() * 800 - 400;
+                                target.z = Math.random() * 800 - 400;
+                            }
+                            return false;
+                        }
+                    }
+                    
+                    return p.traveled < p.range && p.y > -50;
+                });
+                
+                game.explosives = game.explosives.filter(e => {
+                    if (!e.isMine) {
+                        e.vy -= 0.8;
+                        e.x += e.vx;
+                        e.y += e.vy;
+                        e.z += e.vz;
+                        
+                        if (e.y < 0) {
+                            e.y = 0;
+                            e.vx *= 0.5;
+                            e.vz *= 0.5;
+                            e.vy *= -0.3;
+                        }
+                    }
+                    
+                    let shouldExplode = false;
+                    if (e.isMine) {
+                        for (let id in game.players) {
+                            if (id === e.owner) continue;
+                            const target = game.players[id];
+                            const dist = Math.sqrt((e.x - target.x)**2 + (e.z - target.z)**2);
+                            if (dist < 30) {
+                                shouldExplode = true;
+                                break;
+                            }
+                        }
+                    } else if (e.timer && Date.now() >= e.timer) {
+                        shouldExplode = true;
+                    }
+                    
+                    if (shouldExplode) {
+                        for (let id in game.players) {
+                            const target = game.players[id];
+                            const dist = Math.sqrt((e.x - target.x)**2 + (e.y - target.y)**2 + (e.z - target.z)**2);
+                            if (dist < e.weapon.radius) {
+                                const damage = e.weapon.damage * (1 - dist / e.weapon.radius) * settings.damageMultiplier;
+                                target.health -= damage;
+                                
+                                const bloodAmount = Math.floor(damage / 10);
+                                for (let i = 0; i < bloodAmount; i++) {
+                                    const angle = Math.random() * Math.PI * 2;
+                                    const speed = Math.random() * 12 + 5;
+                                    game.particles.push({
+                                        x: target.x,
+                                        y: target.y + 10,
+                                        z: target.z,
+                                        vx: Math.cos(angle) * speed,
+                                        vy: Math.random() * 10 + 5,
+                                        vz: Math.sin(angle) * speed,
+                                        life: 50,
+                                        color: `hsl(${Math.random() * 20}, 100%, ${25 + Math.random() * 20}%)`,
+                                        size: 2 + Math.random() * 4
+                                    });
+                                }
+                                
+                                if (target.health <= 0) {
+                                    for (let i = 0; i < 15; i++) {
+                                        const angle = Math.random() * Math.PI * 2;
+                                        const speed = Math.random() * 15 + 10;
+                                        game.gibs.push({
+                                            x: target.x,
+                                            y: target.y + 10,
+                                            z: target.z,
+                                            vx: Math.cos(angle) * speed,
+                                            vy: Math.random() * 20 + 10,
+                                            vz: Math.sin(angle) * speed,
+                                            rotX: Math.random() * Math.PI * 2,
+                                            rotY: Math.random() * Math.PI * 2,
+                                            rotVel: (Math.random() - 0.5) * 0.4,
+                                            life: 150,
+                                            type: Math.floor(Math.random() * 3),
+                                            emoji: target.emoji
+                                        });
+                                    }
+                                    
+                                    for (let i = 0; i < 5; i++) {
+                                        game.bloodSplatters.push({
+                                            x: target.x + (Math.random() - 0.5) * 50,
+                                            y: 0.1,
+                                            z: target.z + (Math.random() - 0.5) * 50,
+                                            size: 50 + Math.random() * 40,
+                                            alpha: 0.8,
+                                            rotation: Math.random() * Math.PI * 2
+                                        });
+                                    }
+                                    
+                                    target.health = target.maxHealth;
+                                    target.x = Math.random() * 800 - 400;
+                                    target.z = Math.random() * 800 - 400;
+                                }
+                            }
+                        }
+                        
+                        for (let i = 0; i < 30; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = Math.random() * 10;
+                            game.particles.push({
+                                x: e.x,
+                                y: e.y,
+                                z: e.z,
+                                vx: Math.cos(angle) * speed,
+                                vy: Math.random() * 10,
+                                vz: Math.sin(angle) * speed,
+                                life: 30,
+                                color: e.weapon.color,
+                                size: 3
+                            });
+                        }
+                        
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                game.particles = game.particles.filter(p => {
+                    p.vy -= 0.5;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.z += p.vz;
+                    p.vx *= 0.98;
+                    p.vz *= 0.98;
+                    p.life--;
+                    
+                    if (p.y < 0 && p.color.includes('hsl')) {
+                        game.bloodSplatters.push({
+                            x: p.x,
+                            y: 0.1,
+                            z: p.z,
+                            size: p.size * 2,
+                            alpha: 0.6,
+                            rotation: Math.random() * Math.PI * 2
+                        });
+                        return false;
+                    }
+                    
+                    return p.life > 0 && p.y > -10;
+                });
+                
+                game.gibs = game.gibs.filter(g => {
+                    g.vy -= 0.8;
+                    g.x += g.vx;
+                    g.y += g.vy;
+                    g.z += g.vz;
+                    g.rotX += g.rotVel;
+                    g.rotY += g.rotVel;
+                    g.vx *= 0.98;
+                    g.vz *= 0.98;
+                    
+                    if (g.y < 0) {
+                        g.y = 0;
+                        g.vy *= -0.4;
+                        g.vx *= 0.7;
+                        g.vz *= 0.7;
+                        
+                        if (Math.abs(g.vy) < 1) {
+                            g.vy = 0;
+                            g.vx *= 0.9;
+                            g.vz *= 0.9;
+                        }
+                    }
+                    
+                    g.life--;
+                    return g.life > 0;
+                });
+                
+                game.bloodSplatters = game.bloodSplatters.filter(s => {
+                    s.alpha -= 0.001;
+                    return s.alpha > 0;
+                });
+                
+                game.camera.x = player.x;
+                game.camera.y = player.y + 50;
+                game.camera.z = player.z - 100 * Math.cos(player.rotX);
+            }
+            
+            function project(x, y, z) {
+                const cam = game.camera;
+                const player = game.players[playerId];
+                if (!player) return null;
+                
+                const dx = x - player.x;
+                const dz = z - player.z;
+                const rotated = {
+                    x: dx * Math.cos(-player.rotY) - dz * Math.sin(-player.rotY),
+                    y: y - cam.y,
+                    z: dx * Math.sin(-player.rotY) + dz * Math.cos(-player.rotY)
+                };
+                
+                const scale = 300 / (rotated.z + 300);
+                return {
+                    x: canvas.width / 2 + rotated.x * scale,
+                    y: canvas.height / 2 - rotated.y * scale,
+                    scale: scale,
+                    z: rotated.z
+                };
+            }
+            
+            function render() {
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.strokeStyle = '#16213e';
+                ctx.lineWidth = 1;
+                for (let x = -1000; x <= 1000; x += 50) {
+                    const p1 = project(x, 0, -1000);
+                    const p2 = project(x, 0, 1000);
+                    if (p1 && p2 && p1.z > -200 && p2.z > -200) {
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+                for (let z = -1000; z <= 1000; z += 50) {
+                    const p1 = project(-1000, 0, z);
+                    const p2 = project(1000, 0, z);
+                    if (p1 && p2 && p1.z > -200 && p2.z > -200) {
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+                
+                game.bloodSplatters.forEach(splat => {
+                    const pos = project(splat.x, splat.y, splat.z);
+                    if (pos && pos.z > -100) {
+                        ctx.save();
+                        ctx.translate(pos.x, pos.y);
+                        ctx.rotate(splat.rotation);
+                        ctx.globalAlpha = splat.alpha;
+                        
+                        ctx.fillStyle = '#8b0000';
+                        ctx.beginPath();
+                        const points = 8;
+                        for (let i = 0; i < points; i++) {
+                            const angle = (i / points) * Math.PI * 2;
+                            const radius = (splat.size * pos.scale) * (0.7 + Math.random() * 0.3);
+                            const x = Math.cos(angle) * radius;
+                            const y = Math.sin(angle) * radius;
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        for (let i = 0; i < 5; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = splat.size * pos.scale * (0.5 + Math.random() * 0.5);
+                            const size = splat.size * pos.scale * 0.2;
+                            ctx.beginPath();
+                            ctx.arc(
+                                Math.cos(angle) * dist,
+                                Math.sin(angle) * dist,
+                                size,
+                                0,
+                                Math.PI * 2
+                            );
+                            ctx.fill();
+                        }
+                        
+                        ctx.globalAlpha = 1;
+                        ctx.restore();
+                    }
+                });
+                
+                game.particles.forEach(p => {
+                    const pos = project(p.x, p.y, p.z);
+                    if (pos && pos.z > -100) {
+                        ctx.fillStyle = p.color;
+                        ctx.globalAlpha = p.life / 40;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, (p.size || 3) * pos.scale, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                    }
+                });
+                
+                game.gibs.forEach(g => {
+                    const pos = project(g.x, g.y, g.z);
+                    if (pos && pos.z > -100) {
+                        ctx.save();
+                        ctx.translate(pos.x, pos.y);
+                        ctx.globalAlpha = Math.min(1, g.life / 60);
+                        
+                        const size = 12 * pos.scale;
+                        
+                        if (g.type === 0) {
+                            ctx.font = `${size * 1.5}px Arial`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillStyle = '#8b0000';
+                            ctx.fillRect(-size/2, -size/2, size, size);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillText(g.emoji, 0, 0);
+                        } else if (g.type === 1) {
+                            ctx.fillStyle = '#a52a2a';
+                            ctx.beginPath();
+                            ctx.arc(0, 0, size, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.fillStyle = '#8b0000';
+                            ctx.beginPath();
+                            ctx.arc(size * 0.3, 0, size * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            ctx.fillStyle = '#e8d5c4';
+                            ctx.fillRect(-size/2, -size/3, size, size/1.5);
+                            ctx.fillStyle = '#d4bfaa';
+                            ctx.fillRect(-size/3, -size/4, size/1.5, size/2);
+                        }
+                        
+                        ctx.globalAlpha = 1;
+                        ctx.restore();
+                    }
+                });
+                
+                game.explosives.forEach(e => {
+                    const pos = project(e.x, e.y, e.z);
+                    if (pos && pos.z > -100) {
+                        ctx.fillStyle = e.weapon.color;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, 8 * pos.scale, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        if (e.isMine) {
+                            ctx.strokeStyle = '#ff0000';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(pos.x, pos.y, 20 * pos.scale, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                    }
+                });
+                
+                game.projectiles.forEach(p => {
+                    const pos = project(p.x, p.y, p.z);
+                    if (pos && pos.z > -100) {
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, 4 * pos.scale, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+                
+                Object.values(game.players).forEach(p => {
+                    const pos = project(p.x, p.y + 10, p.z);
+                    if (pos && pos.z > -100) {
+                        const shadowPos = project(p.x, 0, p.z);
+                        if (shadowPos) {
+                            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                            ctx.beginPath();
+                            ctx.ellipse(shadowPos.x, shadowPos.y, 15 * shadowPos.scale, 8 * shadowPos.scale, 0, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        
+                        ctx.font = `${40 * pos.scale}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(p.emoji, pos.x, pos.y);
+                        
+                        const barWidth = 50 * pos.scale;
+                        const barHeight = 6 * pos.scale;
+                        const barY = pos.y - 30 * pos.scale;
+                        
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(pos.x - barWidth / 2, barY, barWidth, barHeight);
+                        
+                        const healthPercent = p.health / p.maxHealth;
+                        ctx.fillStyle = healthPercent > 0.5 ? '#4ade80' : healthPercent > 0.25 ? '#fbbf24' : '#ef4444';
+                        ctx.fillRect(pos.x - barWidth / 2, barY, barWidth * healthPercent, barHeight);
+                        
+                        ctx.fillStyle = '#fff';
+                        ctx.font = `${12 * pos.scale}px Arial`;
+                        ctx.fillText(p.name, pos.x, barY - 10 * pos.scale);
+                    }
+                });
+                
+                const player = game.players[playerId];
+                if (player) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    const cx = canvas.width / 2;
+                    const cy = canvas.height / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - 15, cy);
+                    ctx.lineTo(cx - 5, cy);
+                    ctx.moveTo(cx + 5, cy);
+                    ctx.lineTo(cx + 15, cy);
+                    ctx.moveTo(cx, cy - 15);
+                    ctx.lineTo(cx, cy - 5);
+                    ctx.moveTo(cx, cy + 5);
+                    ctx.lineTo(cx, cy + 15);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(20, canvas.height - 60, 200, 40);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '16px Arial';
+                    ctx.fillText(`Health: ${Math.ceil(player.health)}`, 30, canvas.height - 35);
+                    
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(20, canvas.height - 120, 250, 50);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '14px Arial';
+                    ctx.fillText(`Weapon: ${player.weapon.name}`, 30, canvas.height - 95);
+                    ctx.fillText(`Type: ${player.weapon.type.toUpperCase()}`, 30, canvas.height - 75);
+                }
+            }
+            
+            function gameLoop() {
+                update();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            gameLoop();
+        }
+    </script>
+</body>
+</html>
